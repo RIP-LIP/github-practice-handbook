@@ -25,7 +25,7 @@ npm run build      # 产物输出到 dist/
 npm run preview    # 预览构建结果
 ```
 
-需要 Node 18 或更高版本。
+需要 Node 22.12 或更高版本（Astro 7 的最低要求）。
 
 ## 站点结构
 
