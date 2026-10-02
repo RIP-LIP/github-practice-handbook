@@ -1,0 +1,12 @@
+---
+import { inline } from "../lib/inline.js";
+const { items } = Astro.props;
+---
+<dl class="kv">
+  {items.map(([k, v]) => (
+    <div>
+      <dt>{k}</dt>
+      <dd set:html={inline(v)} />
+    </div>
+  ))}
+</dl>

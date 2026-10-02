@@ -1,0 +1,296 @@
+---
+import "../styles/global.css";
+import Sidebar from "../components/Sidebar.astro";
+import { STAGES, INDEX, total, pad } from "../data/chapters.js";
+const {
+  title = "GitHub 实践手册",
+  description = "从首次 push 到分支协作、认证配置、密钥补救的 GitHub 实操手册。每一节都给能直接粘进终端的命令。",
+  current = -1,
+  sections = [],
+} = Astro.props;
+
+const stage = current >= 0 ? STAGES.findIndex((s) => current >= s.from && current <= s.to) : -1;
+const searchIndex = INDEX.map((c) => ({ n: c.n, url: c.url, t: c.title, d: c.desc }));
+
+/* 规范地址：site 配在 astro.config.mjs，Astro.url.pathname 已含 base，
+   所以直接拼即可，不会漏掉 /仓库名/ 前缀。 */
+const canonical = new URL(Astro.url.pathname, Astro.site).href;
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  headline: title,
+  description,
+};
+---
+
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <meta property="og:type" content="article" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta name="twitter:card" content="summary" />
+    <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+    <script is:inline>
+      /* 主题必须在首帧前定好，否则刷新会闪一下白 */
+      (function () {
+        try {
+          var k = "ghguide-theme";
+          var saved = localStorage.getItem(k);
+          var t =
+            saved === "dark" || saved === "light"
+              ? saved
+              : window.matchMedia("(prefers-color-scheme: dark)").matches
+                ? "dark"
+                : "light";
+          document.documentElement.dataset.theme = t;
+        } catch (e) {}
+      })();
+      /* 侧栏：宽屏常驻，窄屏首次访问默认收起，不遮正文 */
+      (function () {
+        try {
+          var saved = localStorage.getItem("ghguide-nav");
+          var open = saved === null ? window.innerWidth >= 1024 : saved === "1";
+          if (!open) document.documentElement.classList.add("nav-off");
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="progress" role="presentation"></div>
+
+    <header class="site-head">
+      <div class="head-in">
+        <button
+          class="navbtn"
+          id="navbtn"
+          type="button"
+          aria-label="展开或收起目录"
+          aria-expanded="true"
+          aria-controls="side"
+        >
+          <i></i><i></i><i></i>
+        </button>
+        <a class="brand" href="/"><span class="mk"></span>GitHub 实践手册</a>
+        <nav class="topnav" aria-label="板块">
+          {STAGES.map((s, si) => (
+            <a class={stage === si ? "on" : ""} href={INDEX[s.from]?.url}>{INDEX[s.from]?.short}</a>
+          ))}
+        </nav>
+        <div class="head-spacer"></div>
+        {current >= 0 && (
+          <div class="now" aria-live="polite">
+            <span>{pad(current)}</span><span class="sep">/</span>
+            <b>{INDEX[current]?.title}</b>
+          </div>
+        )}
+        <div class="search">
+          <input id="q" type="search" placeholder="搜索章节" aria-label="搜索章节" autocomplete="off" />
+          <div class="search-results" id="qres" role="listbox"></div>
+        </div>
+        <button class="btn" id="theme" type="button" aria-label="切换主题">暗色</button>
+      </div>
+    </header>
+
+    <Sidebar current={current} />
+
+    <slot />
+
+    {
+      sections.length > 1 && (
+        <nav class="outline" id="outline" aria-label="本页目录">
+          <div class="ot">本页</div>
+          <ol>
+            {sections.map((s) => (
+              <li><a href={`#${s.id}`} data-toc={s.id}>{s.text}</a></li>
+            ))}
+          </ol>
+        </nav>
+      )
+    }
+
+    <script is:inline define:vars={{ searchIndex, current, total, chapterId: String(current) }}>
+      /* ---------- 主题 ---------- */
+      var THEME_KEY = "ghguide-theme";
+      var NAV_KEY = "ghguide-nav";
+      var READ_KEY = "ghguide-read";
+      var NAV_WIDE = 1024;
+
+      function applyTheme(t) {
+        document.documentElement.dataset.theme = t;
+        var b = document.getElementById("theme");
+        if (b) {
+          b.textContent = t === "dark" ? "亮色" : "暗色";
+          b.setAttribute("aria-pressed", t === "dark" ? "true" : "false");
+        }
+      }
+      applyTheme(document.documentElement.dataset.theme || "light");
+      document.getElementById("theme").addEventListener("click", function () {
+        var t = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+        applyTheme(t);
+        try { localStorage.setItem(THEME_KEY, t); } catch (e) {}
+      });
+
+      /* ---------- 侧栏收纳 ---------- */
+      var navOpen = document.documentElement.classList.contains("nav-off") ? false : true;
+      function wide() { return window.innerWidth >= NAV_WIDE; }
+      function applyNav() {
+        var h = document.documentElement;
+        h.classList.toggle("nav-open", navOpen);
+        h.classList.toggle("nav-off", !navOpen);
+        h.classList.toggle("nav-wide", wide());
+        var b = document.getElementById("navbtn");
+        b.setAttribute("aria-expanded", navOpen ? "true" : "false");
+        b.setAttribute("aria-label", navOpen ? "收起目录" : "展开目录");
+      }
+      function toggleNav() {
+        navOpen = !navOpen;
+        try { localStorage.setItem(NAV_KEY, navOpen ? "1" : "0"); } catch (e) {}
+        applyNav();
+      }
+      applyNav();
+      document.addEventListener("click", function (ev) {
+        if (ev.target.closest("#navbtn")) { toggleNav(); return; }
+        if (ev.target.closest("#navmask")) { toggleNav(); return; }
+        var sc = ev.target.closest(".side a.sc");
+        if (sc && !wide() && navOpen) { navOpen = false; applyNav(); }
+      });
+      document.addEventListener("keydown", function (ev) {
+        if (ev.key === "Escape" && navOpen && !wide()) toggleNav();
+      });
+      window.addEventListener("resize", function () {
+        document.documentElement.classList.toggle("nav-wide", wide());
+      });
+
+      /* ---------- 搜索 ---------- */
+      var q = document.getElementById("q");
+      var qres = document.getElementById("qres");
+      if (q && qres) {
+        function run() {
+          var v = q.value.trim().toLowerCase();
+          qres.textContent = "";
+          if (!v) { qres.classList.remove("on"); return; }
+          var hit = searchIndex.filter(function (c) {
+            return (c.t + " " + c.d).toLowerCase().indexOf(v) >= 0;
+          }).slice(0, 12);
+          if (!hit.length) {
+            qres.innerHTML = '<div class="empty">没有匹配的章节</div>';
+          } else {
+            hit.forEach(function (c) {
+              var a = document.createElement("a");
+              a.href = c.url;
+              a.innerHTML = '<span class="n">' + String(c.n).padStart(2, "0") + "</span><span>" + c.t + "</span>";
+              qres.appendChild(a);
+            });
+          }
+          qres.classList.add("on");
+        }
+        q.addEventListener("input", run);
+        q.addEventListener("focus", run);
+        document.addEventListener("click", function (ev) {
+          if (!ev.target.closest(".search")) qres.classList.remove("on");
+        });
+        document.addEventListener("keydown", function (ev) {
+          if (ev.key === "Escape") { q.value = ""; qres.classList.remove("on"); }
+        });
+      }
+
+      /* ---------- 复制命令 ---------- */
+      async function copyText(text) {
+        try {
+          if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(text);
+            return true;
+          }
+        } catch (e) {}
+        try {
+          var ta = document.createElement("textarea");
+          ta.value = text;
+          ta.setAttribute("readonly", "");
+          ta.style.cssText = "position:fixed;top:-1000px;left:-1000px;opacity:0";
+          document.body.appendChild(ta);
+          ta.select();
+          ta.setSelectionRange(0, ta.value.length);
+          var ok = document.execCommand("copy");
+          document.body.removeChild(ta);
+          return ok;
+        } catch (e) { return false; }
+      }
+      document.addEventListener("click", function (ev) {
+        var btn = ev.target.closest(".cb-copy");
+        if (!btn) return;
+        var code = btn.closest(".cb") && btn.closest(".cb").querySelector(".cb-pre code");
+        if (!code) return;
+        copyText(code.textContent).then(function (ok) {
+          var old = btn.textContent;
+          btn.textContent = ok ? "已复制" : "复制失败";
+          btn.classList.toggle("done", ok);
+          setTimeout(function () { btn.textContent = old; btn.classList.remove("done"); }, 1600);
+        });
+      });
+
+      /* ---------- 已读状态 ---------- */
+      function markRead(n) {
+        if (n < 0) return;
+        try {
+          var s = new Set(JSON.parse(localStorage.getItem(READ_KEY) || "[]"));
+          s.add("ch-" + String(n).padStart(2, "0"));
+          localStorage.setItem(READ_KEY, JSON.stringify(Array.from(s)));
+        } catch (e) {}
+        document.querySelectorAll(".side a.sc, .chip").forEach(function (a) {
+          var m = (a.getAttribute("href") || "").match(/\/ch\/(\d+)\/?$/);
+          if (m && Number(m[1]) === n) a.classList.add("read");
+        });
+      }
+      try {
+        JSON.parse(localStorage.getItem(READ_KEY) || "[]").forEach(function (id) {
+          var m = String(id).match(/(\d+)/);
+          if (!m) return;
+          document.querySelectorAll('.side a.sc[href$="/ch/' + m[1] + '/"], .chip[href$="/ch/' + m[1] + '/"]')
+            .forEach(function (a) { a.classList.add("read"); });
+        });
+      } catch (e) {}
+      markRead(current);
+
+      /* ---------- 阅读进度 ---------- */
+      var ticking = false;
+      function progress() {
+        var h = document.documentElement;
+        var max = h.scrollHeight - h.clientHeight;
+        var pct = max > 0 ? (h.scrollTop / max) * 100 : 0;
+        document.getElementById("progress").style.width = pct.toFixed(2) + "%";
+        ticking = false;
+      }
+      window.addEventListener("scroll", function () {
+        if (ticking) return;
+        ticking = true;
+        requestAnimationFrame(progress);
+      }, { passive: true });
+      progress();
+
+      /* ---------- 右栏大纲高亮 ---------- */
+      var tocLinks = Array.prototype.slice.call(document.querySelectorAll("[data-toc]"));
+      if (tocLinks.length) {
+        var targets = tocLinks
+          .map(function (a) { return document.getElementById(a.dataset.toc); })
+          .filter(Boolean);
+        var io = new IntersectionObserver(function (entries) {
+          entries.forEach(function (en) {
+            if (!en.isIntersecting) return;
+            tocLinks.forEach(function (a) {
+              a.classList.toggle("on", a.dataset.toc === en.target.id);
+            });
+          });
+        }, { rootMargin: "-80px 0px -70% 0px" });
+        targets.forEach(function (el) { io.observe(el); });
+      }
+    </script>
+  </body>
+</html>

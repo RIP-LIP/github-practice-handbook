@@ -1,0 +1,12 @@
+---
+import { inline } from "../lib/inline.js";
+const { head, rows } = Astro.props;
+---
+<div class="tw">
+  <table>
+    <thead><tr>{head.map((h) => <th set:html={inline(h)} />)}</tr></thead>
+    <tbody>
+      {rows.map((r) => <tr>{r.map((c) => <td set:html={inline(c)} />)}</tr>)}
+    </tbody>
+  </table>
+</div>

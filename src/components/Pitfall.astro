@@ -1,0 +1,45 @@
+---
+import { inline } from "../lib/inline.js";
+import CodeBlock from "./CodeBlock.astro";
+const b = Astro.props;
+
+/* 四段缺一即降级：不给「只有现象没有解法」的 hunk 外观 */
+const full = Boolean(b.code && b.cause && Array.isArray(b.fix) && b.fix.length && b.habit);
+---
+{
+  full ? (
+    <article class="pitfall">
+      <div class="pitfall-head">
+        <span class="tag">现象</span>
+        <code>{b.code}</code>
+        {b.title && <span class="msg">{b.title}</span>}
+      </div>
+      <div class="pitfall-part" data-p="cause">
+        <div class="pt">根因</div>
+        <p set:html={inline(b.cause)} />
+      </div>
+      <div class="pitfall-part" data-p="fix">
+        <div class="pt">解法</div>
+        {b.fix.map((f) =>
+          typeof f === "string" ? (
+            <p set:html={inline(f)} />
+          ) : (
+            <CodeBlock lang={f.lang || "sh"} kind="add" text={f.text} note={f.note} />
+          )
+        )}
+      </div>
+      <div class="pitfall-part" data-p="habit">
+        <div class="pt">预防</div>
+        <p set:html={inline(b.habit)} />
+      </div>
+    </article>
+  ) : (
+    <div class="note" data-kind="warn">
+      <span class="nt">{b.title || "现象"}</span>
+      <p><code>{b.code}</code></p>
+      {b.cause && <p set:html={inline(b.cause)} />}
+      {Array.isArray(b.fix) && b.fix.map((f) => <p set:html={inline(typeof f === "string" ? f : f.text)} />)}
+      {b.habit && <p set:html={inline(b.habit)} />}
+    </div>
+  )
+}

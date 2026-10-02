@@ -1,0 +1,45 @@
+---
+import { inline, esc } from "../lib/inline.js";
+const b = Astro.props;
+
+/* can / cannot 必须成对，否则不给「哪些能做哪些不能做」的双栏外观 */
+const full = Array.isArray(b.can) && b.can.length && Array.isArray(b.cannot) && b.cannot.length;
+const off = b.source?.kind === "官方文档";
+---
+{
+  full ? (
+    <article class="boundary">
+      <div class="boundary-head">
+        <h4 set:html={inline(b.title)} />
+        <div class="symptom">{esc(b.symptom)}</div>
+      </div>
+      <div class="boundary-grid">
+        <div class="boundary-col can">
+          <div class="ct">可以</div>
+          <ul>{b.can.map((i) => <li set:html={inline(i)} />)}</ul>
+        </div>
+        <div class="boundary-col cannot">
+          <div class="ct">不可以</div>
+          <ul>{b.cannot.map((i) => <li set:html={inline(i)} />)}</ul>
+        </div>
+      </div>
+      {b.fix?.length > 0 && (
+        <div class="boundary-fix">
+          <div class="ct">怎么办</div>
+          {b.fix.map((x) => <p set:html={inline(x)} />)}
+        </div>
+      )}
+      <div class="boundary-src">
+        <span class={`badge ${off ? "off" : "comm"}`}>{esc(b.source.kind)}</span>
+        核验于 {esc(b.source.date)}
+        {b.source.url && <> · <a href={b.source.url} target="_blank" rel="noopener noreferrer">查看出处</a></>}
+      </div>
+    </article>
+  ) : (
+    <div class="note" data-kind="warn">
+      <span class="nt">{b.title || "限制"}</span>
+      <p>{esc(b.symptom)}</p>
+      {b.fix?.length > 0 && b.fix.map((x) => <p set:html={inline(x)} />)}
+    </div>
+  )
+}

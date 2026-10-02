@@ -1,0 +1,31 @@
+---
+import { STAGES, INDEX, pad } from "../data/chapters.js";
+const { current = -1 } = Astro.props;
+/* 已读状态存在浏览器 localStorage，构建期不可知，交给客户端脚本打 .read */
+---
+<aside class="side" id="side" aria-label="章节导航">
+  <a class="side-top" href="/">章节总览</a>
+  {
+    STAGES.map((st, si) => (
+      <div class="sg">
+        <div class="sg-h">
+          <span class="sn">{pad(si + 1)}</span>
+          <span class="st">{st.name}</span>
+          <span class="line" />
+        </div>
+        {INDEX.filter((c) => c.n >= st.from && c.n <= st.to).map((c) => (
+          <a
+            class:list={["sc", c.n === current && "current"]}
+            href={c.url}
+            aria-current={c.n === current ? "true" : undefined}
+            title={`第 ${c.n} 章 ${c.title}`}
+          >
+            <span class="n">{pad(c.n)}</span>
+            <span class="t">{c.title}</span>
+          </a>
+        ))}
+      </div>
+    ))
+  }
+</aside>
+<button class="navmask" id="navmask" type="button" aria-label="收起导航栏" tabindex="-1"></button>

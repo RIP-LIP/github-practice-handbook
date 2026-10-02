@@ -1,0 +1,9 @@
+---
+import { inline, esc } from "../lib/inline.js";
+const { layers } = Astro.props;
+---
+<div class="model">
+  {layers.map((l) => (
+    <div class="lay"><b>{esc(l.name)}</b><span set:html={inline(l.desc)} /></div>
+  ))}
+</div>

@@ -1,0 +1,60 @@
+---
+import Base from "../layouts/Base.astro";
+import CodeBlock from "../components/CodeBlock.astro";
+import { STAGES, INDEX, DESC, pad, href, total } from "../data/chapters.js";
+---
+
+<Base
+  title="GitHub 实践手册 · 上传、下载、认证、协作、排错"
+  description="从首次 push 到分支协作、认证配置、密钥补救的 GitHub 实操手册。每一节都给能直接粘进终端的命令。"
+>
+  <main class="home">
+    <h1>从零开始，把项目传到 GitHub</h1>
+    <p class="lede">
+      装好工具、配好认证、上传第一个仓库，再到分支协作和出错了怎么修。每一节都是可以直接照着敲的命令，卡住了就搜报错原文。
+    </p>
+    <CodeBlock
+      lang="shell"
+      kind="cmd"
+      text="git push -u origin main"
+      note="这是「本地第一次把代码送上去」的那条命令。前面还有一步 `git remote add`，第 7 章会讲。"
+    />
+    <p style="margin:20px 0 0">
+      <a class="tocbtn" href={href(0)} style="height:38px;padding:0 16px;font-size:14px">从第 1 步：准备环境开始 →</a>
+    </p>
+
+    <div class="board-head">
+      <h2>章节总览</h2>
+      <span class="hint">共 {total} 章，按五个板块分组。带底色的表示你读过。</span>
+    </div>
+
+    {
+      STAGES.map((st, si) => (
+        <section class="stage">
+          <div class="stage-h">
+            <span class="sn">{pad(si + 1)}</span>
+            <span class="st">{st.name}</span>
+            <span class="line" />
+          </div>
+          {st.hint && <p class="hint">{st.hint}</p>}
+          <div class="chips">
+            {INDEX.filter((c) => c.n >= st.from && c.n <= st.to).map((c) => (
+              <a class="chip" href={c.url} aria-label={`第 ${c.n} 章 ${c.title}`}>
+                <span class="n">{pad(c.n)}</span>
+                <span class="tx">
+                  <span class="tt">{c.title}</span>
+                  <span class="td">{DESC[c.n] || ""}</span>
+                </span>
+              </a>
+            ))}
+          </div>
+        </section>
+      ))
+    }
+  </main>
+
+  <footer class="foot">
+    <p>命令均按 Git 2.53 与 GitHub 现行行为核对，官方链接与限额数据核对于 2026-10。</p>
+    <p>平台界面与额度会变化。涉及限额、配额、平台策略的部分请以官方文档为准，文中已给出链接。</p>
+  </footer>
+</Base>

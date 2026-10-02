@@ -1,0 +1,9 @@
+---
+import { inline } from "../lib/inline.js";
+const { lang = "sh", kind = "cmd", text, note } = Astro.props;
+const label = String(lang).slice(0, 4).toUpperCase();
+---
+<pre class="cb" data-kind={kind}><span class="cb-gut"><span class="cb-lang">{label}</span><button
+      class="cb-copy" type="button" aria-label="复制命令">复制</button></span><span class="cb-pre"><code>{text}</code></span>{note && (
+  <span class="cb-note"><span class="cb-note-t" set:html={inline(note)} /></span>
+)}</pre>

@@ -1,0 +1,139 @@
+---
+import Base from "../../layouts/Base.astro";
+import CodeBlock from "../../components/CodeBlock.astro";
+import Note from "../../components/Note.astro";
+import DataTable from "../../components/DataTable.astro";
+import TermList from "../../components/TermList.astro";
+import LayerModel from "../../components/LayerModel.astro";
+import Lab from "../../components/Lab.astro";
+import Pitfall from "../../components/Pitfall.astro";
+import Boundary from "../../components/Boundary.astro";
+import ChapterHead from "../../components/ChapterHead.astro";
+import { CHAPTERS, INDEX, pad, href, total } from "../../data/chapters.js";
+import { inline } from "../../lib/inline.js";
+
+export function getStaticPaths() {
+  return CHAPTERS.map((c, i) => ({
+    params: { id: String(i).padStart(2, "0") },
+    props: { n: i },
+  }));
+}
+
+const { n } = Astro.props;
+const ch = CHAPTERS[n];
+const prev = n > 0 ? INDEX[n - 1] : null;
+const next = n < total - 1 ? INDEX[n + 1] : null;
+
+/* 大纲锚点 + 小节自动编号。
+   数据层已剥离所有手写序号（「1.」「第一段：」「阶段一：」「档 1：」），
+   这里统一按出现顺序编号，插入或调整小节时不用回头改号。 */
+let seq = 0;
+let ord = 0;
+const sections = [];
+const blocks = ch.blocks.map((b) => {
+  if (b.t === "h3") {
+    const id = "sec-" + seq++;
+    const text = `${++ord}. ` + String(b.text).replace(/^§\s*/, "").trim();
+    sections.push({ id, text });
+    return { ...b, id, text };
+  }
+  return b;
+});
+---
+
+<Base
+  title={`第 ${n} 章 ${ch.title} · GitHub 实践手册`}
+  description={ch.lede || ch.title}
+  current={n}
+  sections={sections}
+>
+  <main class="doc">
+    <header class="ch-head">
+      <div class="ch-num">第 {n} 章 / 共 {total} 章</div>
+      <h2>{ch.title}</h2>
+      {ch.lede && <p class="lede" set:html={inline(ch.lede)} />}
+    </header>
+
+    <ChapterHead n={n} />
+
+    {
+      sections.length > 1 && (
+        <nav class="secnav" aria-label="本章小节">
+          <span class="lb">本章</span>
+          {sections.map((s) => (
+            <a href={`#${s.id}`}>{s.text}</a>
+          ))}
+        </nav>
+      )
+    }
+
+    <div class="ch-body">
+      {
+        blocks.map((b) => {
+          switch (b.t) {
+            case "p":
+              return <p set:html={inline(b.text)} />;
+            case "h3":
+              return <h3 id={b.id} set:html={inline(b.text)} />;
+            case "ul":
+              return <ul>{b.items.map((i) => <li set:html={inline(i)} />)}</ul>;
+            case "ol":
+              return <ol>{b.items.map((i) => <li set:html={inline(i)} />)}</ol>;
+            case "code":
+              return <CodeBlock lang={b.lang} kind={b.kind} text={b.text} note={b.note} />;
+            case "note":
+              return <Note kind={b.kind} title={b.title} text={b.text} />;
+            case "table":
+              return <DataTable head={b.head} rows={b.rows} />;
+            case "kv":
+              return <TermList items={b.items} />;
+            case "model":
+              return <LayerModel layers={b.layers} />;
+            case "lab":
+              return <Lab title={b.title} steps={b.steps} cmd={b.cmd} cmdLang={b.cmdLang} />;
+            case "pitfall":
+              return <Pitfall {...b} />;
+            case "boundary":
+              return <Boundary {...b} />;
+            default:
+              return null;
+          }
+        })
+      }
+    </div>
+
+    <nav class="pager" aria-label="翻章">
+      {
+        prev ? (
+          <a href={prev.url}>
+            <span class="dir">← 上一章</span>
+            <span class="nm">{prev.title}</span>
+          </a>
+        ) : (
+          <a class="spacer" href="/">
+            <span class="dir">← 返回</span>
+            <span class="nm">章节总览</span>
+          </a>
+        )
+      }
+      {
+        next ? (
+          <a class="next" href={next.url}>
+            <span class="dir">下一章 →</span>
+            <span class="nm">{next.title}</span>
+          </a>
+        ) : (
+          <a class="next" href="/">
+            <span class="dir">读完了 →</span>
+            <span class="nm">章节总览</span>
+          </a>
+        )
+      }
+    </nav>
+  </main>
+
+  <footer class="foot">
+    <p>命令均按 Git 2.53 与 GitHub 现行行为核对，官方链接与限额数据核对于 2026-10。</p>
+    <p>平台界面与额度会变化。涉及限额、配额、平台策略的部分请以官方文档为准，文中已给出链接。</p>
+  </footer>
+</Base>

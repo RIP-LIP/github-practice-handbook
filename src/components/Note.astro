@@ -1,0 +1,10 @@
+---
+import { inline } from "../lib/inline.js";
+import CodeBlock from "./CodeBlock.astro";
+const { kind = "info", title, text } = Astro.props;
+const LABEL = { info: "补充", warn: "易错", danger: "红线" };
+---
+<div class="note" data-kind={kind}>
+  <span class="nt">{title || LABEL[kind]}</span>
+  <p set:html={inline(text)} />
+</div>

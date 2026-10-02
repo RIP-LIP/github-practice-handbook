@@ -1,0 +1,10 @@
+---
+import { inline } from "../lib/inline.js";
+import CodeBlock from "./CodeBlock.astro";
+const { title = "试一试", steps, cmd, cmdLang = "sh" } = Astro.props;
+---
+<div class="lab">
+  <div class="lt">{title}</div>
+  <ol>{steps.map((s) => <li set:html={inline(s)} />)}</ol>
+  {cmd && <CodeBlock lang={cmdLang} kind="add" text={cmd} />}
+</div>

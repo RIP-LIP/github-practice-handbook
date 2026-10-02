@@ -1,0 +1,31 @@
+---
+import { META, INDEX } from "../data/chapters.js";
+import { inline } from "../lib/inline.js";
+const { n } = Astro.props;
+const meta = META[n];
+---
+{
+  meta && (
+    <>
+      <div class="goalbox">
+        <div class="gb-h">
+          <span class="gb-tag">读完你会得到</span>
+          <span class="gb-time">约 {meta.time}</span>
+        </div>
+        <p set:html={inline(meta.goal)} />
+      </div>
+
+      {meta.shortcut && (
+        <div class="shortcut">
+          <span class="sc-tag">想跳过这章？</span>
+          <p>
+            <span set:html={inline(meta.shortcut.text)} />
+            <a class="sc-link" href={INDEX[meta.shortcut.to].url}>
+              去第 {meta.shortcut.to} 章「{INDEX[meta.shortcut.to].title}」→
+            </a>
+          </p>
+        </div>
+      )}
+    </>
+  )
+}
